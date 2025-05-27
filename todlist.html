@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>To-Do List with Timers & Green Completion</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #000000;
+      display: flex;
+      justify-content: center;
+      padding: 40px;
+    }
+
+    .todo-container {
+      background: #D0DDD0;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+      width: 420px;
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .input-section {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    input[type="text"], select, input[type="number"] {
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+
+    button {
+      padding: 10px;
+      background-color:#CD5656;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #DA6C6C
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    li {
+      background-color: #f9f9f9;
+      margin-bottom: 10px;
+      padding: 10px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      transition: background-color 0.3s ease;
+    }
+
+    .task-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+    }
+
+    .task-text {
+      font-weight: bold;
+    }
+
+    .priority-high {
+      color: red;
+    }
+
+    .priority-medium {
+      color: orange;
+    }
+
+    .priority-low {
+      color: green;
+    }
+
+    .completed {
+      text-decoration: line-through;
+      opacity: 0.9;
+      background-color: #d4edda !important;
+      border: 1px solid #c3e6cb;
+    }
+
+    .actions {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 5px;
+    }
+
+    .actions button {
+      background: #dc3545;
+      padding: 5px 8px;
+      font-size: 12px;
+    }
+
+    .actions button:hover {
+      background: #b52a36;
+    }
+
+    .sort-button {
+      margin-bottom: 15px;
+      background: #6F826A;
+    }
+
+    .sort-button:hover {
+      background: #B0DB9C;
+    }
+
+    .timer {
+      font-size: 12px;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <div class="todo-container">
+    <h2>To-Do List with Timers & Checkboxes</h2>
+
+    <div class="input-section">
+      <input type="text" id="taskInput" placeholder="Enter a task">
+      <select id="priorityInput">
+        <option value="high">High Priority</option>
+        <option value="medium">Medium Priority</option>
+        <option value="low">Low Priority</option>
+      </select>
+      <input type="number" id="durationInput" placeholder="Duration (minutes)" min="1">
+      <button onclick="addTask()">Add Task</button>
+    </div>
+
+    <button class="sort-button" onclick="sortTasks()">Sort by Priority</button>
+
+    <ul id="taskList"></ul>
+  </div>
+
+  <script>
+    let tasks = [];
+
+    function addTask() {
+      const taskInput = document.getElementById('taskInput');
+      const priorityInput = document.getElementById('priorityInput');
+      const durationInput = document.getElementById('durationInput');
+      const text = taskInput.value.trim();
+      const priority = priorityInput.value;
+      const duration = parseInt(durationInput.value);
+
+      if (!text || isNaN(duration) || duration <= 0) return;
+
+      const task = {
+        text,
+        priority,
+        duration,
+        remaining: duration * 60,
+        completed: false,
+        interval: null
+      };
+
+      task.interval = setInterval(() => {
+        if (task.remaining > 0) {
+          task.remaining--;
+        } else {
+          task.completed = true;
+          clearInterval(task.interval);
+        }
+        renderTasks();
+      }, 1000);
+
+      tasks.push(task);
+      taskInput.value = '';
+      durationInput.value = '';
+      renderTasks();
+    }
+
+    function formatTime(seconds) {
+      const m = Math.floor(seconds / 60);
+      const s = seconds % 60;
+      return `${m}:${s.toString().padStart(2, '0')}`;
+    }
+
+    function renderTasks() {
+      const taskList = document.getElementById('taskList');
+      taskList.innerHTML = '';
+
+      tasks.forEach((task, index) => {
+        const li = document.createElement('li');
+        const priorityClass = 'priority-' + task.priority;
+        li.className = task.completed ? 'completed' : '';
+
+        li.innerHTML = `
+          <div class="task-left">
+            <input type="checkbox" ${task.completed ? 'checked' : ''} onclick="toggleComplete(${index})">
+            <span class="task-text ${priorityClass}">
+              ${task.text} (${task.priority})
+            </span>
+          </div>
+          <div class="actions">
+            <span class="timer">${formatTime(task.remaining)}</span>
+            <button onclick="deleteTask(${index})">Delete</button>
+          </div>
+        `;
+
+        taskList.appendChild(li);
+      });
+    }
+
+    function deleteTask(index) {
+      clearInterval(tasks[index].interval);
+      tasks.splice(index, 1);
+      renderTasks();
+    }
+
+    function toggleComplete(index) {
+      tasks[index].completed = !tasks[index].completed;
+      if (tasks[index].completed) {
+        clearInterval(tasks[index].interval);
+      }
+      renderTasks();
+    }
+
+    function sortTasks() {
+      const priorityOrder = { high: 1, medium: 2, low: 3 };
+      tasks.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+      renderTasks();
+    }
+  </script>
+</body>
+</html>
